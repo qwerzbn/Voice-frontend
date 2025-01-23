@@ -36,12 +36,12 @@ const items = ref<MenuProps['items']>([
   {
     key: '/',
     icon: () => h(MailOutlined),
-    label: '主页',
+    label: '声音样本库',
   },
   {
     key: '/about',
     icon: () => h(AppstoreOutlined),
-    label: '关于',
+    label: '文本转语音',
   },
   {
     key: '/setting',

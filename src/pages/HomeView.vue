@@ -1,5 +1,6 @@
 <template>
-  <div id="vue-devtools-anchor">
+  <!--  声音样本库-->
+  <div id="audio-library">
     <!-- 图片列表 -->
     <a-list
       :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }"
@@ -108,7 +109,7 @@ const onAudioEnded = (index: number) => {
 // 搜索条件
 const searchParams = reactive<API.AudioFileQueryRequest>({
   current: 1,
-  pageSize: 12,
+  pageSize: 10,
   sortField: 'createTime',
   sortOrder: 'descend',
 })
