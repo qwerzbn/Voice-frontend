@@ -2,7 +2,7 @@
   <div id="text-to-audio">
     <a-textarea
       class="synthesis-text"
-      v-model:value="value"
+      v-model:value="textValue"
       placeholder="请输入合成文本"
       :rows="6"
     />
@@ -11,7 +11,7 @@
         :disabled="isUploaded"
         class="upload-audio"
         v-model:fileList="fileList"
-        name="file"
+        :name="fileName"
         :multiple="false"
         :progress="progressConfig"
         :customRequest="handleUpload"
@@ -20,6 +20,10 @@
         maxCount="3"
         accept=".wav,.mp3,.flac"
       >
+        <!--        关闭按钮      -->
+        <div style="position: absolute; top: 10px; right: 10px">
+          <a-button plain shape="circle" :icon="h(CloseOutlined)" @click="closeUploading" />
+        </div>
         <div v-if="!isUploaded">
           <p class="ant-upload-drag-icon">
             <UploadOutlined />
@@ -28,7 +32,14 @@
           <p class="ant-upload-hint">-或-</p>
           <p class="ant-upload-text">点击上传</p>
         </div>
-        <div v-else class="audio-player"></div>
+        <div v-else class="audio-player">
+          <audio
+            v-if="uploadAudioUrl"
+            :src="uploadAudioUrl"
+            controls
+            style="width: 30vw; margin-top: 7vh"
+          ></audio>
+        </div>
       </a-upload-dragger>
       <a-card
         style="
@@ -53,8 +64,8 @@
           "
         >
           <audio
-            v-if="audioUrl"
-            :src="audioUrl"
+            v-if="recordAudioUrl"
+            :src="recordAudioUrl"
             controls
             style="width: 30vw; margin-top: 7vh"
           ></audio>
@@ -75,11 +86,10 @@
             <a-typography-text>停止录音</a-typography-text>
           </a-space>
         </div>
-        <!--        <a-button type="default" @click="playRecording" :disabled="!audioUrl"> 播放录音</a-button>-->
       </a-card>
     </a-space>
     <p></p>
-    <button class="generate-audio-button" @click="gennerate">生成音频</button>
+    <button class="generate-audio-button" @click="generate">生成音频</button>
     <p></p>
     <a-card class="generated-audio">
       <a-typography-text style="margin-right: 5px">合成音频</a-typography-text>
@@ -95,24 +105,45 @@ import { h, ref, watch } from 'vue'
 import { uploadFileUsingPost } from '@/api/fileController.ts'
 import { Client } from '@gradio/client'
 
+// 是否正在录制语音
+const isRecording = ref(false)
+// 使用联合类型，进行媒体录制操作
+const mediaRecorder = ref<MediaRecorder | null>(null)
+const audioChunks = ref<Blob[]>([])
+// 录音的 URL
+const recordAudioUrl = ref('')
+// 上传的 URL
+const uploadAudioUrl = ref('')
+// 是否已经上传文件
 const isUploaded = ref(false)
-const promptUrl = ref('')
+// 是否正在上传文件
 const loading = ref<boolean>(false)
 // 在组件的数据部分定义 progress 和 loading 状态
 const progress = ref<number>(0)
+// 上传文件列表
 const fileList = ref([])
-const value = ref('')
+//上传文件的名字
+const fileName = ref('')
+// 合成文本输入框的值
+const textValue = ref('')
+/**
+ * 监听上传文件的状态
+ * @param info
+ */
 const handleChange = (info: UploadChangeParam) => {
   const status = info.file.status
   if (status !== 'uploading') {
-    // console.log(info.file, info.fileList)
   }
   if (status === 'done') {
-    // message.success(`${info.file.name} file uploaded successfully.`)
+    fileName.value = info.file.name
+    message.success('文件上传成功')
   } else if (status === 'error') {
-    // message.error(`${info.file.name} file upload failed.`)
+    message.error('文件上传失败')
   }
 }
+/**
+ * 进度条配置
+ */
 const progressConfig: UploadProps['progress'] = {
   strokeColor: {
     '0%': '#108ee9',
@@ -122,23 +153,29 @@ const progressConfig: UploadProps['progress'] = {
   // @ts-ignore
   format: (percent) => `${parseFloat(percent.toFixed(2))}%`,
 }
-// 使用 watch 来监听 progressPercent 的变化并更新 progressConfig.percent
+/**
+ * 使用 watch 来监听 progressPercent 的变化并更新 progressConfig.percent
+ */
 watch(progress, (newPercent) => {
-  // 这里假设 progressConfig.percent 是可变的
-  // 如果不是，你可以考虑用一个独立的响应式变量来管理 percent
-  // console.log(progress, newPercent)
   if ('percent' in progressConfig) {
     progressConfig.percent = newPercent
   }
 })
 
+/**
+ * 监听拖拽事件
+ * @param e
+ */
 function handleDrop(e: DragEvent) {
   console.log(e)
 }
 
 /**
- * 上传
+ * 上传文件
  * @param file
+ * @param onProgress
+ * @param onError
+ * @param onSuccess
  */
 const handleUpload = async ({ file, onProgress, onError, onSuccess }: any) => {
   loading.value = true
@@ -157,15 +194,14 @@ const handleUpload = async ({ file, onProgress, onError, onSuccess }: any) => {
         }
       },
     })
-
     // 如果请求成功
     // @ts-ignore
     if (res.data.code === 0) {
-      message.success('文件上传成功')
       // @ts-ignore
-      promptUrl.value = res.data.data
+      uploadAudioUrl.value = res.data.data
       isUploaded.value = true
-      onSuccess(res.data) // 调用 onSuccess 来通知 Ant Design 上传已完成
+      // 调用 onSuccess 来通知 Ant Design 上传已完成
+      onSuccess(res.data)
     } else {
       // @ts-ignore
       message.error('文件上传失败，' + res.data.message)
@@ -178,12 +214,9 @@ const handleUpload = async ({ file, onProgress, onError, onSuccess }: any) => {
     loading.value = false
   }
 }
-
-const isRecording = ref(false)
-const mediaRecorder = ref<MediaRecorder | null>(null) // 使用联合类型
-const audioChunks = ref<Blob[]>([])
-const audioUrl = ref('')
-
+/**
+ * 开始录音
+ */
 const startRecording = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -193,7 +226,7 @@ const startRecording = async () => {
     }
     mediaRecorder.value.onstop = () => {
       const audioBlob = new Blob(audioChunks.value, { type: 'audio/wav' })
-      audioUrl.value = URL.createObjectURL(audioBlob)
+      recordAudioUrl.value = URL.createObjectURL(audioBlob)
       audioChunks.value = []
     }
     mediaRecorder.value.start()
@@ -202,32 +235,43 @@ const startRecording = async () => {
     message.error('无法访问麦克风')
   }
 }
-
+/**
+ * 停止录音
+ */
 const stopRecording = () => {
   if (mediaRecorder.value) {
     mediaRecorder.value.stop()
     isRecording.value = false
   }
 }
-// 关闭录音
+/**
+ * 关闭录音文件
+ */
 const closeRecording = () => {
-  audioUrl.value = ''
+  recordAudioUrl.value = ''
   isRecording.value = false
+  fileList.value = []
   message.info('录音已清除')
 }
-const playRecording = () => {
-  if (audioUrl.value) {
-    const audio = new Audio(audioUrl.value)
-    audio.play()
-  }
+/**
+ * 关闭上传文件
+ */
+const closeUploading = () => {
+  uploadAudioUrl.value = ''
+  isUploaded.value = false
+  fileList.value = []
+  fileName.value = ''
+  message.info('上传文件已清除')
 }
-
-const gennerate = async () => {
-  if (!promptUrl.value) {
+/**
+ * 生成音频
+ */
+const generate = async () => {
+  if (!uploadAudioUrl.value && !recordAudioUrl.value) {
     message.error('请先上传音频文件或录制音频')
     return
   }
-  const response = await fetch(promptUrl.value)
+  const response = await fetch(uploadAudioUrl.value)
   const audioBlob = await response.blob()
   const client = await Client.connect('https://iic-cosyvoice2-0-5b.ms.show/')
   const result = await client.predict('/generate_audio', {

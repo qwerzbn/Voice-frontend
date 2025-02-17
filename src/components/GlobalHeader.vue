@@ -5,7 +5,7 @@
         <router-link to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.png" alt="logo" />
-            <div class="title">AI 教学语音合成软件</div>
+            <div class="title">智言教合</div>
           </div>
         </router-link>
       </a-col>
@@ -28,7 +28,7 @@
 <script lang="ts" setup>
 import { h, ref } from 'vue'
 import { AppstoreOutlined, MailOutlined, SettingOutlined } from '@ant-design/icons-vue'
-import { MenuProps } from 'ant-design-vue'
+import type { MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 
 const current = ref<string[]>([])
@@ -39,9 +39,19 @@ const items = ref<MenuProps['items']>([
     label: '声音样本库',
   },
   {
-    key: '/about',
+    key: '/text-to-audio',
     icon: () => h(AppstoreOutlined),
     label: '文本转语音',
+  },
+  {
+    key: '/video-reset',
+    icon: () => h(AppstoreOutlined),
+    label: '视频置换',
+  },
+  {
+    key: '/ppt-to-audio',
+    icon: () => h(AppstoreOutlined),
+    label: '有声PPT',
   },
   {
     key: '/setting',
@@ -55,7 +65,7 @@ const router = useRouter()
  * 菜单点击事件
  * @param key
  */
-const doMenuClick = ({ key }) => {
+const doMenuClick = ({ key }: { key: string }) => {
   router.push({
     path: key,
   })
