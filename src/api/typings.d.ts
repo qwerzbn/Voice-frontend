@@ -10,7 +10,9 @@ declare namespace API {
     id?: number
     isDelete?: number
     picture?: string
+    tags?: string
     title?: string
+    type?: number
     updateTime?: string
     userId?: number
   }
@@ -23,6 +25,7 @@ declare namespace API {
     fileSize?: number
     fileType?: string
     picture?: string
+    tags?: string[]
     title?: string
     userId?: number
   }
@@ -40,6 +43,7 @@ declare namespace API {
     searchText?: string
     sortField?: string
     sortOrder?: string
+    tags?: string[]
     title?: string
     userId?: number
   }
@@ -53,6 +57,7 @@ declare namespace API {
     fileType?: string
     id?: number
     picture?: string
+    tags?: string[]
     title?: string
     userId?: number
   }
@@ -67,7 +72,10 @@ declare namespace API {
     fileType?: string
     id?: number
     isDelete?: number
+    picture?: string
+    tags?: string[]
     title?: string
+    type?: number
     updateTime?: string
     userId?: number
     userVO?: UserVO
@@ -82,6 +90,12 @@ declare namespace API {
   type BaseResponseBoolean_ = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseListAudioFileVO_ = {
+    code?: number
+    data?: AudioFileVO[]
     message?: string
   }
 
@@ -137,6 +151,12 @@ declare namespace API {
     code?: number
     data?: UserVO
     message?: string
+  }
+
+  type ConversionResponse = {
+    downloadUrl?: string
+    error?: string
+    success?: boolean
   }
 
   type DeleteRequest = {
@@ -225,6 +245,32 @@ declare namespace API {
     total?: number
   }
 
+  type PPTConvertRequest = {
+    imageList?: string[]
+    type?: number
+  }
+
+  type PreviewResponse = {
+    error?: string
+    slides?: string[]
+    success?: boolean
+  }
+
+  type testDownloadFileUsingGETParams = {
+    /** filepath */
+    filepath?: string
+  }
+
+  type TTSRequest = {
+    language?: string
+    text?: string
+    type?: number
+  }
+
+  type uploadAudioUsingPOSTParams = {
+    biz?: string
+  }
+
   type uploadFileUsingPOSTParams = {
     biz?: string
   }
@@ -250,6 +296,7 @@ declare namespace API {
   }
 
   type UserLoginRequest = {
+    type?: number
     userAccount?: string
     userPassword?: string
   }
@@ -267,6 +314,7 @@ declare namespace API {
 
   type UserRegisterRequest = {
     checkPassword?: string
+    type?: number
     userAccount?: string
     userPassword?: string
   }
@@ -292,5 +340,10 @@ declare namespace API {
     userName?: string
     userProfile?: string
     userRole?: string
+  }
+
+  type VideoRequest = {
+    audioFileVO?: AudioFileVO
+    filePath?: string
   }
 }

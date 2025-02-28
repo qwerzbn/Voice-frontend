@@ -16,12 +16,10 @@
           accept="video/*,audio/*"
           @change="handleFileChange"
           class="hidden"
-        >
+        />
         <i class="upload-icon">🎥</i>
         <p>点击或拖拽上传音视频文件</p>
-        <p v-if="mediaFile" class="selected-file">
-          已选择: {{ mediaFile.name }}
-        </p>
+        <p v-if="mediaFile" class="selected-file">已选择: {{ mediaFile.name }}</p>
       </div>
     </div>
 
@@ -35,7 +33,7 @@
         class="media-player"
         @timeupdate="handleTimeUpdate"
       >
-        <source :src="mediaUrl" :type="mediaFile.type">
+        <source :src="mediaUrl" :type="mediaFile.type" />
         <track
           v-if="subtitlesUrl"
           kind="subtitles"
@@ -43,16 +41,10 @@
           :src="subtitlesUrl"
           label="字幕"
           default
-        >
+        />
       </video>
-      <audio
-        v-else
-        ref="audioPlayer"
-        controls
-        class="media-player"
-        @timeupdate="handleTimeUpdate"
-      >
-        <source :src="mediaUrl" :type="mediaFile.type">
+      <audio v-else ref="audioPlayer" controls class="media-player" @timeupdate="handleTimeUpdate">
+        <source :src="mediaUrl" :type="mediaFile.type" />
       </audio>
     </div>
 
@@ -63,39 +55,25 @@
       <!-- 预设声音选择 -->
       <div class="setting-item">
         <label>预设声音：</label>
-        <select v-model="selectedVoice" class="voice-select">
-          <option value="">请选择声音</option>
-          <option v-for="voice in voices" :key="voice.id" :value="voice.id">
-            {{ voice.name }}
-          </option>
-        </select>
+          <a-select
+            v-model:value="value"
+            :options="allVoices"
+            style="width: 200px"
+            @change="handleChange"
+          ></a-select>
       </div>
 
       <!-- 音调调节 -->
       <div class="setting-item">
         <label>音调调节：</label>
-        <input
-          type="range"
-          v-model="pitch"
-          min="0.5"
-          max="2"
-          step="0.1"
-          class="slider"
-        >
+        <input type="range" v-model="pitch" min="0.5" max="2" step="0.1" class="slider" />
         <span>{{ pitch }}x</span>
       </div>
 
       <!-- 语速调节 -->
       <div class="setting-item">
         <label>语速调节：</label>
-        <input
-          type="range"
-          v-model="speed"
-          min="0.5"
-          max="2"
-          step="0.1"
-          class="slider"
-        >
+        <input type="range" v-model="speed" min="0.5" max="2" step="0.1" class="slider" />
         <span>{{ speed }}x</span>
       </div>
     </div>
@@ -105,10 +83,7 @@
       <h3>字幕设置</h3>
       <div class="subtitle-controls">
         <label class="checkbox-label">
-          <input
-            type="checkbox"
-            v-model="autoGenerateSubtitles"
-          > 自动生成字幕
+          <input type="checkbox" v-model="autoGenerateSubtitles" /> 自动生成字幕
         </label>
         <div class="subtitle-upload">
           <label>或上传字幕文件（.srt/.vtt）：</label>
@@ -117,7 +92,7 @@
             @change="handleSubtitleUpload"
             accept=".srt,.vtt"
             class="subtitle-input"
-          >
+          />
         </div>
       </div>
     </div>
@@ -135,12 +110,8 @@
     <div v-if="convertedUrl" class="download-section">
       <p>转换完成！</p>
       <div class="preview-converted">
-        <video
-          v-if="isVideo"
-          controls
-          class="media-player"
-        >
-          <source :src="convertedUrl" type="video/mp4">
+        <video v-if="isVideo" controls class="media-player">
+          <source :src="convertedUrl" type="video/mp4" />
           <track
             v-if="subtitlesUrl"
             kind="subtitles"
@@ -148,14 +119,10 @@
             :src="subtitlesUrl"
             label="字幕"
             default
-          >
+          />
         </video>
-        <audio
-          v-else
-          controls
-          class="media-player"
-        >
-          <source :src="convertedUrl" type="audio/mp3">
+        <audio v-else controls class="media-player">
+          <source :src="convertedUrl" type="audio/mp3" />
         </audio>
       </div>
       <a :href="convertedUrl" download class="download-btn">下载转换后的文件</a>
@@ -164,8 +131,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import type { Ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { getCustomAudioUsingPost } from '@/api/audioFileController.ts'
+import type { SelectProps } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
+import { UserOutlined } from '@ant-design/icons-vue'
+
+const handleChange = (value: string) => {
+  console.log(`selected ${value}`)
+}
+const allVoices = ref<SelectProps['options']>()
+const fixedVoices = [
+  {
+    label: 'Manager',
+    options: [
+      {
+        value: 'jack',
+        label: 'Jack',
+      },
+      {
+        value: 'lucy',
+        label: 'Lucy',
+      },
+    ],
+  },
+  {
+    label: 'Engineer',
+    options: [
+      {
+        value: 'yiminghe',
+        label: 'Yiminghe',
+      },
+    ],
+  },
+]
+
+const value = ref(['lucy'])
 
 interface Voice {
   id: number
@@ -195,14 +197,6 @@ const speed = ref(1)
 
 // 字幕设置
 const autoGenerateSubtitles = ref(false)
-
-// 预设声音列表
-const voices: Ref<Voice[]> = ref([
-  { id: 1, name: '成年男声' },
-  { id: 2, name: '成年女声' },
-  { id: 3, name: '儿童声音' },
-  { id: 4, name: '机器人声' },
-])
 
 // 计算是否为视频文件
 const isVideo = computed(() => {
@@ -270,7 +264,7 @@ const startConversion = async (): Promise<void> => {
     formData.append('generateSubtitles', autoGenerateSubtitles.value.toString())
 
     // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 3000))
     convertedUrl.value = mediaUrl.value // 实际应该使用API返回的URL
 
     if (autoGenerateSubtitles.value) {
@@ -284,6 +278,35 @@ const startConversion = async (): Promise<void> => {
     isConverting.value = false
   }
 }
+const dataList = ref<API.AudioFileVO[]>([])
+// 获取数据
+const fetchData = async () => {
+  const res = await getCustomAudioUsingPost()
+  if (res.data.data) {
+    dataList.value = res.data.data ?? []
+    const options = reactive<String[]>([])
+    dataList.value.forEach((item) => {
+      options.push(item.title || '')
+    })
+    // 将工程师数组转换为Select组件所需的格式
+    const customOptions = options.map((option) => ({
+      value: option,
+      label: option.charAt(0).toUpperCase() + option.slice(1), // 首字母大写处理
+    }))
+    // 动态生成的工程师选项
+    const customVoices = {
+      label: 'Custom', // 固定的label
+      options: customOptions,
+    }
+    // 合并固定和动态选项
+    allVoices.value = [...fixedVoices, customVoices]
+  } else {
+    message.error('获取数据失败，' + res.data.message)
+  }
+}
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>
@@ -308,7 +331,7 @@ const startConversion = async (): Promise<void> => {
 }
 
 .upload-area:hover {
-  border-color: #409EFF;
+  border-color: #409eff;
 }
 
 .hidden {
@@ -330,7 +353,8 @@ const startConversion = async (): Promise<void> => {
   margin: 10px 0;
 }
 
-.voice-settings, .subtitle-section {
+.voice-settings,
+.subtitle-section {
   margin: 20px 0;
   padding: 15px;
   border: 1px solid #eee;
@@ -376,7 +400,7 @@ const startConversion = async (): Promise<void> => {
 .convert-btn {
   width: 100%;
   padding: 12px;
-  background-color: #409EFF;
+  background-color: #409eff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -401,7 +425,7 @@ const startConversion = async (): Promise<void> => {
 .download-btn {
   display: inline-block;
   padding: 10px 20px;
-  background-color: #67C23A;
+  background-color: #67c23a;
   color: white;
   text-decoration: none;
   border-radius: 4px;
